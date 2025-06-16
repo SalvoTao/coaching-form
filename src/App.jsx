@@ -55,6 +55,11 @@ const CoachingForm = () => {
         body: JSON.stringify(formData),
       });
 
+      if (res.status === 409) {
+        alert("Hai già inviato una richiesta con questa email.");
+        return;
+      }
+
       if (!res.ok) throw new Error("Errore durante l'invio a Brevo");
 
       alert("Messaggio inviato! Ti contatterò presto 💪");
