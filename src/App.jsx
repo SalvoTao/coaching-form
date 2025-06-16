@@ -37,8 +37,8 @@ const CoachingForm = () => {
 
     setIsSending(true);
 
+    // PRIMA: verifica con Brevo
     try {
-      // 1. Controllo Brevo PRIMA
       const res = await fetch("/api/sendBrevo", {
         method: "POST",
         headers: {
@@ -53,8 +53,15 @@ const CoachingForm = () => {
       }
 
       if (!res.ok) throw new Error("Errore durante l'invio a Brevo");
+    } catch (err) {
+      console.error("Errore da Brevo:", err);
+      alert("Errore durante la verifica. Riprova più tardi.");
+      setIsSending(false);
+      return;
+    }
 
-      // 2. Solo se Brevo va a buon fine, invia a EmailJS
+    // POI: solo se Brevo ha dato OK, invia con EmailJS
+    try {
       await emailjs.sendForm(
         "service_kuh0m4i",
         "template_g59pvit",
@@ -67,8 +74,8 @@ const CoachingForm = () => {
       setUserInput("");
       generateCaptcha();
     } catch (err) {
-      console.error("Errore:", err);
-      alert("Errore durante l'invio, riprova.");
+      console.error("Errore EmailJS:", err);
+      alert("Errore durante l'invio della mail. Riprova.");
     } finally {
       setIsSending(false);
     }
