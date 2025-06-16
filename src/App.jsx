@@ -47,7 +47,7 @@ const CoachingForm = () => {
       );
 
       // 2. Invia alla Serverless API di Brevo
-      const res = await fetch("/api/sendBrevo", {
+      const res = await fetch("/api/send-brevo", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
