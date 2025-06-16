@@ -38,15 +38,7 @@ const CoachingForm = () => {
     setIsSending(true);
 
     try {
-      // 1. Invia a EmailJS
-      await emailjs.sendForm(
-        "service_kuh0m4i",
-        "template_g59pvit",
-        formEl,
-        "YgptsrhslOdmh_-3d"
-      );
-
-      // 2. Invia alla Serverless API di Brevo
+      // 1. Controllo Brevo PRIMA
       const res = await fetch("/api/sendBrevo", {
         method: "POST",
         headers: {
@@ -61,6 +53,14 @@ const CoachingForm = () => {
       }
 
       if (!res.ok) throw new Error("Errore durante l'invio a Brevo");
+
+      // 2. Solo se Brevo va a buon fine, invia a EmailJS
+      await emailjs.sendForm(
+        "service_kuh0m4i",
+        "template_g59pvit",
+        formEl,
+        "YgptsrhslOdmh_-3d"
+      );
 
       alert("Messaggio inviato! Ti contatterò presto 💪");
       formEl.reset();
