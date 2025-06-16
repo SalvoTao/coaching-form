@@ -30,6 +30,7 @@ export default async function handler(req, res) {
     });
 
     const result = await response.json();
+    console.log("Risposta da Brevo:", result);
 
     if (!response.ok) {
       return res.status(400).json({ error: "Brevo error", brevoResponse: result });
