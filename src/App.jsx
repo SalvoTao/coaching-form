@@ -49,10 +49,22 @@ const CoachingForm = () => {
   const sendEmail = (e) => {
     e.preventDefault();
 
+    // ⏳ Limite invii: 30 secondi
+    const lastSent = localStorage.getItem("lastFormSent");
+    const now = Date.now();
+    if (lastSent && now - parseInt(lastSent) < 500000) {
+        alert("Hai già inviato una richiesta di recente. Attendi qualche secondo.");
+        return;
+    }
+
+    // 🧩 Controllo CAPTCHA personalizzato
     if (userInput !== captchaCode) {
       alert("Il codice di verifica è errato.");
       return;
     }
+
+    // Salva il timestamp dell'invio
+    localStorage.setItem("lastFormSent", now);
 
     const formEl = form.current;
     const formData = {
