@@ -1,0 +1,11 @@
+# Ignora file sensibili
+.env
+
+# Dipendenze
+node_modules/
+
+# Output di build
+dist/
+
+# Config Vercel (se usata)
+.vercel/
