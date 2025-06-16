@@ -3,9 +3,9 @@ import emailjs from "@emailjs/browser";
 
 const CoachingForm = () => {
   const form = useRef();
-
   const [captchaCode, setCaptchaCode] = useState("");
   const [userInput, setUserInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   const generateCaptcha = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -20,51 +20,13 @@ const CoachingForm = () => {
     generateCaptcha();
   }, []);
 
-  const addToBrevo = async (data) => {
-    try {
-      const response = await fetch("https://api.brevo.com/v3/contacts", {
-        method: "POST",
-        headers: {
-          "api-key": import.meta.env.VITE_BREVO_KEY,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          email: data.email,
-          attributes: {
-            FIRSTNAME: data.name,
-            LASTNAME: data.surname,
-          },
-          listIds: [3],
-        }),
-      });
-
-      const result = await response.json();
-      console.log("Risposta Brevo:", result);
-    } catch (error) {
-      console.error("Errore Brevo:", error);
-    }
-  };
-
-  const sendEmail = (e) => {
+  const sendEmail = async (e) => {
     e.preventDefault();
 
-    // ⏳ Limite invii: 30 secondi
-    const lastSent = localStorage.getItem("lastFormSent");
-    const now = Date.now();
-    if (lastSent && now - parseInt(lastSent) < 500000) {
-        alert("Hai già inviato una richiesta di recente. Attendi qualche secondo.");
-        return;
-    }
-
-    // 🧩 Controllo CAPTCHA personalizzato
     if (userInput !== captchaCode) {
       alert("Il codice di verifica è errato.");
       return;
     }
-
-    // Salva il timestamp dell'invio
-    localStorage.setItem("lastFormSent", now);
 
     const formEl = form.current;
     const formData = {
@@ -73,24 +35,38 @@ const CoachingForm = () => {
       email: formEl.user_email.value,
     };
 
-    emailjs
-      .sendForm(
+    setIsSending(true);
+
+    try {
+      // 1. Invia a EmailJS
+      await emailjs.sendForm(
         "service_kuh0m4i",
         "template_g59pvit",
         formEl,
         "YgptsrhslOdmh_-3d"
-      )
-      .then(() => {
-        addToBrevo(formData);
-        alert("Messaggio inviato! Ti contatterò presto 💪");
-        formEl.reset();
-        setUserInput("");
-        generateCaptcha();
-      })
-      .catch((error) => {
-        console.error("Errore EmailJS:", error);
-        alert("Errore durante l'invio, riprova.");
+      );
+
+      // 2. Invia alla Serverless API di Brevo
+      const res = await fetch("/api/sendBrevo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
       });
+
+      if (!res.ok) throw new Error("Errore durante l'invio a Brevo");
+
+      alert("Messaggio inviato! Ti contatterò presto 💪");
+      formEl.reset();
+      setUserInput("");
+      generateCaptcha();
+    } catch (err) {
+      console.error("Errore:", err);
+      alert("Errore durante l'invio, riprova.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -100,8 +76,7 @@ const CoachingForm = () => {
           Coaching Online
         </h1>
         <p className="text-center text-gray-600 mb-8">
-          Compila il modulo qui sotto per essere ricontattato e iniziare il tuo
-          percorso personalizzato 💪
+          Compila il modulo qui sotto per essere ricontattato 💪
         </p>
         <form ref={form} onSubmit={sendEmail} className="space-y-6">
           <div className="md:flex md:space-x-4">
@@ -113,7 +88,7 @@ const CoachingForm = () => {
                 name="user_name"
                 type="text"
                 required
-                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
               />
             </div>
             <div className="md:w-1/2 mt-4 md:mt-0">
@@ -124,7 +99,7 @@ const CoachingForm = () => {
                 name="user_surname"
                 type="text"
                 required
-                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
               />
             </div>
           </div>
@@ -137,7 +112,7 @@ const CoachingForm = () => {
               name="user_email"
               type="email"
               required
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
             />
           </div>
 
@@ -148,7 +123,7 @@ const CoachingForm = () => {
             <select
               name="user_trained_before"
               required
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2"
             >
               <option value="">Seleziona una risposta</option>
               <option value="Si">Sì</option>
@@ -157,9 +132,7 @@ const CoachingForm = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Verifica
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Verifica</label>
             <div className="flex items-center space-x-4">
               <div className="bg-gray-200 font-bold px-4 py-2 rounded text-lg tracking-widest select-none">
                 {captchaCode}
@@ -175,30 +148,23 @@ const CoachingForm = () => {
             <input
               type="text"
               value={userInput}
-              onChange={(e) =>
-                setUserInput(e.target.value.toUpperCase())
-              }
+              onChange={(e) => setUserInput(e.target.value.toUpperCase())}
               placeholder="Inserisci il codice sopra"
               required
-              className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
+            disabled={isSending}
+            className={`w-full ${
+              isSending ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+            } text-white font-bold py-3 px-6 rounded-lg transition duration-300`}
           >
-            Invia richiesta
+            {isSending ? "Invio in corso..." : "Invia richiesta"}
           </button>
         </form>
-      </div>
-
-      <div className="mt-10 w-full max-w-2xl">
-        <img
-          src="https://source.unsplash.com/800x400/?fitness,training"
-          alt="Fitness"
-          className="rounded-xl shadow-lg w-full object-cover"
-        />
       </div>
     </div>
   );
